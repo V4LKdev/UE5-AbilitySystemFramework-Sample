@@ -65,6 +65,9 @@ void AIsekaiPlayerState::ResetForRespawn()
 	// Clear transient state effects handles
 	IsekaiAttributeSet->InvalidateTransientEffectHandles();
 	
+	// Clear death tag
+	IsekaiAbilitySystemComponent->RemoveReplicatedLooseGameplayTag(Tags::State::Dead);
+	
 	// Restore core attributes using your default-attributes GE
 	if (RespawnAttributesEffect)
 	{

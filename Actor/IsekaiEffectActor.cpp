@@ -33,6 +33,11 @@ void AIsekaiEffectActor::ApplyEffectToTarget(AActor* TargetActor, TSubclassOf<UG
 	const FGameplayEffectSpecHandle SpecHandle =
 		TargetASC->MakeOutgoingSpec(GameplayEffectClass, ActorLevel, EffectContextHandle);
 	
+	if (!SpecHandle.IsValid())
+	{
+		UE_LOG(LogIsekaiAbilitySystem, Warning, TEXT("ApplyEffectToTarget: SpecHandle is null"));
+	}
+	
 	const FActiveGameplayEffectHandle ActiveEffectHandle =
 		TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	
@@ -54,15 +59,24 @@ void AIsekaiEffectActor::OnOverlap(AActor* TargetActor)
 	
 	if (InstantEffectApplicationPolicy == ApplyOnOverlap)
 	{
-		ApplyEffectToTarget(TargetActor, InstantGameplayEffectClass);
+		for (const TSubclassOf<UGameplayEffect>& EffectClass : InstantGameplayEffectClasses)
+		{
+			ApplyEffectToTarget(TargetActor, EffectClass);
+		}
 	}
 	if (DurationEffectApplicationPolicy == ApplyOnOverlap)
 	{
-		ApplyEffectToTarget(TargetActor, DurationGameplayEffectClass);
+		for (const TSubclassOf<UGameplayEffect>& EffectClass : DurationGameplayEffectClasses)
+		{
+			ApplyEffectToTarget(TargetActor, EffectClass);
+		}
 	}
 	if (InfiniteEffectApplicationPolicy == ApplyOnOverlap)
 	{
-		ApplyEffectToTarget(TargetActor, InfiniteGameplayEffectClass);
+		for (const TSubclassOf<UGameplayEffect>& EffectClass : InfiniteGameplayEffectClasses)
+		{
+			ApplyEffectToTarget(TargetActor, EffectClass);
+		}
 	}
 }
 
@@ -72,15 +86,24 @@ void AIsekaiEffectActor::OnEndOverlap(AActor* TargetActor)
 	
 	if (InstantEffectApplicationPolicy == ApplyOnEndOverlap)
 	{
-		ApplyEffectToTarget(TargetActor, InstantGameplayEffectClass);
+		for (const TSubclassOf<UGameplayEffect>& EffectClass : InstantGameplayEffectClasses)
+		{
+			ApplyEffectToTarget(TargetActor, EffectClass);
+		}
 	}
 	if (DurationEffectApplicationPolicy == ApplyOnEndOverlap)
 	{
-		ApplyEffectToTarget(TargetActor, DurationGameplayEffectClass);
+		for (const TSubclassOf<UGameplayEffect>& EffectClass : DurationGameplayEffectClasses)
+		{
+			ApplyEffectToTarget(TargetActor, EffectClass);
+		}
 	}
 	if (InfiniteEffectApplicationPolicy == ApplyOnEndOverlap)
 	{
-		ApplyEffectToTarget(TargetActor, InfiniteGameplayEffectClass);
+		for (const TSubclassOf<UGameplayEffect>& EffectClass : InfiniteGameplayEffectClasses)
+		{
+			ApplyEffectToTarget(TargetActor, EffectClass);
+		}
 	}
 	if (InfiniteEffectRemovalPolicy == RemoveOnEndOverlap)
 	{
@@ -90,7 +113,7 @@ void AIsekaiEffectActor::OnEndOverlap(AActor* TargetActor)
 
 void AIsekaiEffectActor::RemoveInfiniteEffectsFrom(AActor* TargetActor)
 {
-	IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(TargetActor);
+	const IAbilitySystemInterface* ASI = Cast<IAbilitySystemInterface>(TargetActor);
 	UAbilitySystemComponent* TargetASC = ASI ? ASI->GetAbilitySystemComponent() : nullptr;
 	if (!TargetASC) return;
 

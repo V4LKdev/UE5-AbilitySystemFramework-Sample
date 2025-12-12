@@ -56,7 +56,7 @@ public:
 	/** Convenience accessor for the current sprint speed (BaseWalkSpeed * SprintSpeedMultiplier). */
 	float GetSprintSpeed() const
 	{
-		return BaseWalkSpeed * SprintSpeedMultiplier;
+		return MaxWalkSpeed * SprintSpeedMultiplier;
 	}
 	
 	/** True if current velocity exceeds MovingThreshold. */
@@ -65,6 +65,9 @@ public:
 	/** Broadcast whenever IsMoving changes between true/false. */
 	FOnIsMovingChangedSignature OnIsMovingChanged;
 	
+	/** Returns true if the character can uncrouch */
+	bool CanUncrouch() const;
+	
 protected:
 	virtual void AddInputVector(FVector WorldVector, bool bForce = false) override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -72,11 +75,7 @@ protected:
 	bool IsRootMotionActive() const;
 	
 	// === Configurable base numbers ===
-
-	/** Baseline ground speed for this character (no sprint, no debuffs). */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Isekai|Movement", meta = (ClampMin = "0.0"))
-	float BaseWalkSpeed = 600.f;
-
+	
 	/** Multiplier applied when sprinting */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Isekai|Movement", meta = (ClampMin = "1.0"))
 	float SprintSpeedMultiplier = 1.5f;

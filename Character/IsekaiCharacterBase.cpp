@@ -8,13 +8,20 @@
 #include "AIAssessment/Component/IsekaiUIBridge.h"
 #include "AIAssessment/IsekaiLoggingChannels.h"
 #include "IsekaiCharacterMovementComponent.h"
+#include "AIAssessment/AI/Utility/AIUtility.h"
 #include "Components/CapsuleComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Perception/AIPerceptionSystem.h"
 
 AIsekaiCharacterBase::AIsekaiCharacterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UIsekaiCharacterMovementComponent>(CharacterMovementComponentName))
 {
 	UIBridge = CreateDefaultSubobject<UIsekaiUIBridge>(TEXT("UIBridge"));
+	
+	TeamID = Neutral;
+	TeamIdStruct = FGenericTeamId(TeamID);
+	
+	bIsDead = false;
 }
 
 void AIsekaiCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -22,6 +29,7 @@ void AIsekaiCharacterBase::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(AIsekaiCharacterBase, bIsDead);
+	DOREPLIFETIME(AIsekaiCharacterBase, TeamID);
 }
 
 UAbilitySystemComponent* AIsekaiCharacterBase::GetAbilitySystemComponent() const
@@ -32,6 +40,26 @@ UAbilitySystemComponent* AIsekaiCharacterBase::GetAbilitySystemComponent() const
 UIsekaiCharacterMovementComponent* AIsekaiCharacterBase::GetIsekaiCharacterMovement() const
 {
 	return Cast<UIsekaiCharacterMovementComponent>(GetCharacterMovement());
+}
+
+void AIsekaiCharacterBase::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	if (HasAuthority())
+	{
+		TeamID = static_cast<EIsekaiTeamID>(NewTeamID.GetId());
+	}
+	TeamIdStruct = NewTeamID;
+}
+
+FGenericTeamId AIsekaiCharacterBase::GetGenericTeamId() const
+{
+	return TeamIdStruct;
+}
+
+ETeamAttitude::Type AIsekaiCharacterBase::GetTeamAttitudeTowards(const AActor& Other) const
+{
+	return FAIUtility::GetTeamAttitude(this, &Other);
+	// return FAIUtility::GetTeamAttitude(this, &Other);
 }
 
 float AIsekaiCharacterBase::GetHealth() const
@@ -55,6 +83,12 @@ float AIsekaiCharacterBase::GetMaxStamina() const
 }
 
 
+void AIsekaiCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+	
+	SetGenericTeamId(FGenericTeamId(TeamID));
+}
 
 void AIsekaiCharacterBase::InitAbilitySystem(AActor* Owner, UIsekaiAbilitySystemComponent* InIsekaiASC, UIsekaiAttributeSet* InIsekaiAS)
 {
@@ -68,7 +102,7 @@ void AIsekaiCharacterBase::InitAbilitySystem(AActor* Owner, UIsekaiAbilitySystem
 	
 	IsekaiAbilitySystemComponent->InitAbilityActorInfo(Owner, this);
 	
-	UIBridge->InitFromAbilitySystem(IsekaiAbilitySystemComponent, IsekaiAttributeSet);
+	UIBridge->InitAbilitySystem(IsekaiAbilitySystemComponent, IsekaiAttributeSet);
 	
 	GetIsekaiCharacterMovement()->InitializeIsekaiReferences(this, IsekaiAbilitySystemComponent);
 }
@@ -95,6 +129,11 @@ void AIsekaiCharacterBase::HandleOutOfHealth()
 		IsekaiAbilitySystemComponent->HandleOutOfHealth();
 	}
 	
+	if (UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(GetWorld()))
+	{
+		PerceptionSys->UnregisterSource(*this, nullptr);
+	}
+	
 	HandleVisualsOnDeath();
 	
 	// Player and AI handling (e.g., respawn, destroy) should be done in subclasses
@@ -108,6 +147,11 @@ void AIsekaiCharacterBase::OnRep_IsDead()
 	}
 	
 	HandleVisualsOnDeath();
+}
+
+void AIsekaiCharacterBase::OnRep_TeamID()
+{
+	TeamIdStruct = FGenericTeamId(TeamID);
 }
 
 void AIsekaiCharacterBase::HandleVisualsOnDeath()

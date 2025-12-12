@@ -18,7 +18,10 @@ public class AIAssessment : ModuleRules
 			"GameplayTags",
 			"GameplayAbilities",
 			"GameplayTasks",
-			"UMG"
+			"UMG",
+			"AIModule",
+			"DeveloperSettings",
+			"NavigationSystem",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

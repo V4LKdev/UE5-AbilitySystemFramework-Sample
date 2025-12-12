@@ -83,7 +83,7 @@ void AIsekaiPlayerController::SetupInputComponent()
 
 void AIsekaiPlayerController::PostProcessInput(const float DeltaTime, const bool bGamePaused)
 {
-	if (IsLocalController())
+	if (IsLocalController() && GetPawn() && GetPawn()->GetPlayerState()) // Only process for locally controlled pawns when the playerstate is replicated (aka the ASC is setup)
 	{
 		if (UIsekaiAbilitySystemComponent* IsekaiASC = GetPawnAbilitySystemComponent())
 		{
@@ -133,6 +133,7 @@ UIsekaiAbilitySystemComponent* AIsekaiPlayerController::GetPawnAbilitySystemComp
 		UIsekaiAbilitySystemComponent* IsekaiASC = Cast<UIsekaiAbilitySystemComponent>(ASI->GetAbilitySystemComponent());
 		if (!IsekaiASC)
 		{
+			// This can trigger during initialisation when the pawn is possessed but the ASC is not yet set up
 			UE_LOG(LogIsekaiPlayer, Warning,
 				TEXT("GetPawnAbilitySystemComponent: Pawn %s returned a null or non-Isekai ASC"),
 				*ControlledPawn->GetName());

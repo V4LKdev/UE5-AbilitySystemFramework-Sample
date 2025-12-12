@@ -20,6 +20,11 @@ bool UIsekaiStaminaCostAbility::CanActivateAbility(const FGameplayAbilitySpecHan
 	{
 		return false;
 	}
+    
+    if (ShouldSkipCost())
+    {
+        return true;
+    }
 
 	// Check if we have enough stamina for the initial cost
 	return HasEnoughStamina(InitialStaminaCost, bAllowCostOverdraw);
@@ -27,6 +32,11 @@ bool UIsekaiStaminaCostAbility::CanActivateAbility(const FGameplayAbilitySpecHan
 
 bool UIsekaiStaminaCostAbility::CommitAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FGameplayTagContainer* OptionalRelevantTags)
 {
+    if (ShouldSkipCost())
+    {
+        return Super::CommitAbility(Handle, ActorInfo, ActivationInfo, OptionalRelevantTags);
+    }
+    
 	// First, check if we have enough stamina. This is a final check before committing.
 	if (!HasEnoughStamina(InitialStaminaCost, bAllowCostOverdraw))
 	{
@@ -68,6 +78,17 @@ void UIsekaiStaminaCostAbility::EndAbility(
     ApplyStaminaRegenDelay();
 
     Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+}
+
+bool UIsekaiStaminaCostAbility::ShouldSkipCost() const
+{
+    if (!bIgnoreCostForAI) return false;
+    
+    if (const APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo()))
+    {
+        return !Pawn->IsPlayerControlled();
+    }
+    return false;
 }
 
 // --- Stamina helpers ---
@@ -114,6 +135,8 @@ bool UIsekaiStaminaCostAbility::ApplyInitialStaminaCost()
 
 FActiveGameplayEffectHandle UIsekaiStaminaCostAbility::StartStaminaDrain()
 {
+    if (ShouldSkipCost()) return FActiveGameplayEffectHandle();
+    
     if (StaminaDrainPerSecond <= 0.f || !PeriodicStaminaDrainEffectClass)
     {
         return FActiveGameplayEffectHandle();

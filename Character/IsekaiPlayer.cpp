@@ -14,6 +14,8 @@
 AIsekaiPlayer::AIsekaiPlayer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	TeamID = EIsekaiTeamID::Player;
+	TeamIdStruct = FGenericTeamId(TeamID);
 }
 
 void AIsekaiPlayer::PossessedBy(AController* NewController)
@@ -73,15 +75,15 @@ void AIsekaiPlayer::HandleMoveInput(const FInputActionValue& Value)
 		return;
 	}
 	
-	MoveAxis.Normalize();
+	MoveAxis = MoveAxis.GetClampedToMaxSize(1.0f);
 
 	const FRotator ControlRotation = Controller->GetControlRotation();
-	const FRotationMatrix ControlRotationMatrix(ControlRotation);
-	const FVector RightVector = ControlRotationMatrix.GetScaledAxis(EAxis::Y);
-	const FVector ForwardVector = ControlRotationMatrix.GetScaledAxis(EAxis::X);
+	FRotator YawRotation(0.f, ControlRotation.Yaw, 0.f);
+	FVector Forward = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+	FVector Right   = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
-	AddMovementInput(RightVector, MoveAxis.X);
-	AddMovementInput(ForwardVector, MoveAxis.Y);
+	AddMovementInput(Right, MoveAxis.X);
+	AddMovementInput(Forward, MoveAxis.Y);
 }
 
 void AIsekaiPlayer::HandleLookInput(const FInputActionValue& Value)

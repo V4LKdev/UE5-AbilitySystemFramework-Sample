@@ -61,6 +61,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Stamina")
 	bool bAllowCostOverdraw = false;
 	
+	/** If true, AI characters (non-player controlled) skip the stamina check and cost application. */
+	UPROPERTY(EditDefaultsOnly, Category="Stamina")
+	bool bIgnoreCostForAI = true;
+	
+	bool ShouldSkipCost() const;
+	
     // --- Stamina helpers ---
 
     /** Returns true if current stamina can afford RequiredStamina (optionally allowing overdraw). */

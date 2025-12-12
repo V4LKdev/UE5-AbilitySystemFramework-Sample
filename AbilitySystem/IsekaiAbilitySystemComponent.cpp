@@ -214,6 +214,9 @@ void UIsekaiAbilitySystemComponent::HandleOutOfHealth()
 
 	ClearAbilityInput();
 	CancelAllAbilities();
+	
+	// Add the Death state tag
+	AddReplicatedLooseGameplayTag(Tags::State::Dead);
 }
 
 // --- Private API ---

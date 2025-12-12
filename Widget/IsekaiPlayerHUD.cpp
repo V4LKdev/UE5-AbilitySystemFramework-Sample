@@ -5,7 +5,7 @@
 
 #include "AIAssessment/Component/IsekaiUIBridge.h"
 
-void UIsekaiPlayerHUD::InitFromBridge(class UIsekaiUIBridge* InUIBridge)
+void UIsekaiPlayerHUD::InitFromBridge(UIsekaiUIBridge* InUIBridge)
 {
 	if (!InUIBridge)
 	{

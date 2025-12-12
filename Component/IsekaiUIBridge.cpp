@@ -3,6 +3,7 @@
 
 #include "IsekaiUIBridge.h"
 
+#include "AIStealthComponent.h"
 #include "AIAssessment/AbilitySystem/IsekaiAttributeSet.h"
 #include "AIAssessment/AbilitySystem/IsekaiAbilitySystemComponent.h"
 #include "AIAssessment/NativeGameplayTags.h"
@@ -13,7 +14,7 @@ UIsekaiUIBridge::UIsekaiUIBridge()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UIsekaiUIBridge::InitFromAbilitySystem(UIsekaiAbilitySystemComponent* InASC, UIsekaiAttributeSet* InAttributeSet)
+void UIsekaiUIBridge::InitAbilitySystem(UIsekaiAbilitySystemComponent* InASC, UIsekaiAttributeSet* InAttributeSet)
 {
 	if (!InAttributeSet || !InASC)
 	{
@@ -64,9 +65,33 @@ void UIsekaiUIBridge::InitFromAbilitySystem(UIsekaiAbilitySystemComponent* InASC
 		.AddUObject(this, &ThisClass::HandleSprintingTagChanged);
 }
 
+void UIsekaiUIBridge::InitStealthComponent(UAIStealthComponent* InStealthComponent)
+{
+	if (!InStealthComponent)
+	{
+		return;
+	}
+	
+	StealthComponent = InStealthComponent;
+	
+	CachedStealthStateData = InStealthComponent->GetCurrentStealthStateData();
+	BroadcastStealthStateData();
+	
+	// Unbind first in case of re-init
+	if (StealthStateDataChangedHandle.IsValid())
+	{
+		InStealthComponent->OnStealthUpdate.Remove(StealthStateDataChangedHandle);
+		StealthStateDataChangedHandle.Reset();
+	}
+	
+	StealthStateDataChangedHandle =
+		InStealthComponent->OnStealthUpdate.AddUObject(this, &ThisClass::HandleStealthStateDataChanged);
+	
+}
+
 void UIsekaiUIBridge::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (AbilitySystem)
+	if (AbilitySystem.IsValid())
 	{
 		if (HealthChangedHandle.IsValid())
 		{
@@ -104,8 +129,39 @@ void UIsekaiUIBridge::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		}
 	}
 	
+	if (StealthComponent.IsValid())
+	{
+		if (StealthStateDataChangedHandle.IsValid())
+		{
+			StealthComponent->OnStealthUpdate.Remove(StealthStateDataChangedHandle);
+			StealthStateDataChangedHandle.Reset();
+		}
+	}
+	
 	Super::EndPlay(EndPlayReason);
 }
+
+
+
+FString UIsekaiUIBridge::GetStealthStateAsString() const
+{
+	switch (CachedStealthStateData.CurrentState)
+	{
+	case EStealthState::None:
+		return TEXT("None");
+	case EStealthState::Idle:
+		return TEXT("Idle");
+	case EStealthState::Suspicious:
+		return TEXT("Suspicious");
+	case EStealthState::Searching:
+		return TEXT("Searching");
+	case EStealthState::Alerted:
+		return TEXT("Alerted");
+	default:
+		return TEXT("Unknown");
+	}
+}
+
 
 void UIsekaiUIBridge::HandleHealthChanged(const struct FOnAttributeChangeData& Data)
 {
@@ -163,6 +219,12 @@ void UIsekaiUIBridge::HandleSprintingTagChanged(const struct FGameplayTag Tag, i
 	BroadcastSprinting();
 }
 
+void UIsekaiUIBridge::HandleStealthStateDataChanged(const FStealthStateData& NewData)
+{
+	CachedStealthStateData = NewData;
+	BroadcastStealthStateData();
+}
+
 // Broadcast helpers
 
 void UIsekaiUIBridge::BroadcastHealth()
@@ -184,3 +246,11 @@ void UIsekaiUIBridge::BroadcastSprinting()
 {
 	OnSprintingChanged.Broadcast(bIsSprinting);
 }
+
+
+void UIsekaiUIBridge::BroadcastStealthStateData()
+{
+	OnStealthStateDataChanged.Broadcast(CachedStealthStateData);
+}
+
+
